@@ -36,7 +36,7 @@ def search_faq_documents(
         # Perform semantic search on company FAQs
         search_results = pinecone_search_faq(
             query=query,
-            top_k=15,
+            top_k=10,
             min_similarity=0.7
         )
         
