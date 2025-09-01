@@ -18,9 +18,9 @@ from app.auth import (
     UserCreate, UserLogin, Token, get_current_user, 
     register_user, login_user
 )
-from app.db_utils import init_database, seed_mock_data
+from app.db_utils import init_database
 from app.pinecone_utils import init_pinecone
-from app.agent import create_agent, create_simple_agent
+from app.agent import create_agent
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -238,14 +238,9 @@ async def chat_endpoint(
         logger.info(f"Chat request from user {user_id}: {query[:100]}...")
         
         # Create agent for this user
-        try:
-            agent = create_agent(
-                user_id=user_id, 
-                doc_ids=request.doc_ids
-            )
-        except Exception as agent_error:
-            logger.warning(f"Failed to create full agent, using simple fallback: {agent_error}")
-            agent = create_simple_agent(user_id=user_id)
+        agent = create_agent(
+            user_id=user_id, 
+        )
         
         # Process the query
         response = await asyncio.to_thread(

@@ -5,7 +5,7 @@ Creates intelligent agents that can reason about when to use different tools and
 from langchain.agents import AgentExecutor, Tool, create_tool_calling_agent
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
-from app.core.tools import search_faq_documents, book_status_lookup, award_status_lookup, get_user_profile_summary
+from app.core.tools import search_faq_documents, book_status_lookup, get_user_profile_summary
 from app.config import settings
 from langchain.chains.conversation.memory import ConversationBufferMemory
 from langchain_mongodb.chat_message_histories import MongoDBChatMessageHistory
@@ -14,7 +14,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def create_agent(user_id=None, doc_ids=None, llm_provider="gemini"):
+def create_agent(user_id=None, llm_provider="gemini"):
     """
     Create a conversational AI agent with access to multiple data sources and reasoning capabilities.
     
@@ -25,7 +25,6 @@ def create_agent(user_id=None, doc_ids=None, llm_provider="gemini"):
     
     Args:
         user_id: ID of the user for personalized responses and data filtering
-        doc_ids: Optional list of specific document IDs to search within
         llm_provider: LLM provider to use ("gemini" or "openai")
         
     Returns:
@@ -60,13 +59,6 @@ def create_agent(user_id=None, doc_ids=None, llm_provider="gemini"):
                 inputs["author_id"] = author_id
             return book_status_lookup.invoke(inputs)
 
-        def award_status_user(author_id: str = None):
-            """Look up award status with automatic user_id injection."""
-            inputs = {"user_id": user_id}
-            if author_id:
-                inputs["author_id"] = author_id
-            return award_status_lookup.invoke(inputs)
-
         def profile_summary_user():
             """Get user profile summary with automatic user_id injection."""
             return get_user_profile_summary.invoke({"user_id": user_id})
@@ -91,15 +83,6 @@ def create_agent(user_id=None, doc_ids=None, llm_provider="gemini"):
                     "Use this when user asks about their book progress, editing status, "
                     "publication timeline, or manuscript-related questions. "
                     "Provides structured information from the publishing database."
-                )
-            ),
-            Tool(
-                name="award_status_lookup", 
-                func=award_status_user,
-                description=(
-                    "Look up award nominations, eligibility status, and recognition details. "
-                    "Use this when user asks about awards, nominations, competitions, "
-                    "or recognition status. Provides structured information from awards database."
                 )
             ),
             Tool(
@@ -149,7 +132,6 @@ def create_agent(user_id=None, doc_ids=None, llm_provider="gemini"):
 
 1. **ANALYZE THE QUERY TYPE:**
    - **Status Questions** ("What's my book status?", "How's my manuscript?") → Use `book_status_lookup`
-   - **Award Questions** ("Am I nominated?", "Award eligibility?") → Use `award_status_lookup`  
    - **General/FAQ Questions** ("How does editing work?", "What are requirements?") → Use `search_faq_documents`
    - **Overview Questions** ("Show me everything", "What's my profile?") → Use `get_user_profile_summary`
 
@@ -215,60 +197,4 @@ Remember: You're not just retrieving information - you're intelligently reasonin
 
     except Exception as e:
         logger.error(f"Error creating agent for user {user_id}: {e}")
-        raise
-
-def create_simple_agent(user_id=None):
-    """
-    Create a simpler version of the agent for fallback scenarios.
-    
-    Args:
-        user_id: ID of the user
-        
-    Returns:
-        AgentExecutor: Basic agent with limited functionality
-    """
-    try:
-        # Use a simpler model setup
-        model = ChatGoogleGenerativeAI(
-            model=settings.GEMINI_MODEL,
-            google_api_key=settings.GEMINI_API_KEY,
-            temperature=0.1
-        )
-
-        # Minimal toolset
-        def search_faq_simple(query: str):
-            """Simple FAQ search function."""
-            return search_faq_documents.invoke({"query": query})
-
-        tools = [
-            Tool(
-                name="search_faq_documents",
-                func=search_faq_simple,
-                description="Search company FAQ documents for relevant information."
-            )
-        ]
-
-        llm_with_tools = model.bind_tools(tools)
-
-        # Simple prompt
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", "You are a helpful AI assistant. Use the search tool to find relevant information when needed."),
-            ("human", "{input}"),
-            MessagesPlaceholder("agent_scratchpad")
-        ])
-
-        agent = create_tool_calling_agent(llm_with_tools, tools, prompt=prompt)
-        
-        agent_executor = AgentExecutor(
-            agent=agent,
-            tools=tools,
-            verbose=False,
-            max_iterations=2
-        )
-
-        logger.info(f"Created simple fallback agent for user {user_id}")
-        return agent_executor
-
-    except Exception as e:
-        logger.error(f"Error creating simple agent: {e}")
         raise

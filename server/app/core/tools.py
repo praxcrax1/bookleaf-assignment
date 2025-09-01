@@ -37,7 +37,7 @@ def search_faq_documents(
         # Perform semantic search on company FAQs
         search_results = pinecone_search_faq(
             query=query,
-            top_k=10,
+            top_k=15,
             min_similarity=0.7
         )
         
@@ -94,48 +94,6 @@ Book ID: {book_info.get('book_id', 'N/A')}
         logger.error(f"Error in book_status_lookup tool: {e}")
         return f"I encountered an error while looking up book status: {str(e)}"
 
-@tool 
-def award_status_lookup(
-    user_id: Annotated[str, InjectedToolArg],
-    author_id: Optional[str] = None
-) -> str:
-    """
-    Look up award status and eligibility for a user or specific author.
-    
-    This tool queries the MongoDB database to retrieve current award information,
-    including nomination status and eligibility details.
-    
-    Args:
-        user_id: ID of the user making the request (automatically injected)
-        author_id: Optional specific author ID to look up (defaults to user_id)
-        
-    Returns:
-        Formatted award status information or a message if no awards found
-    """
-    try:
-        # Use user_id as author_id if not specified
-        target_author_id = author_id or user_id
-        
-        logger.info(f"Looking up award status for author {target_author_id}")
-        
-        award_info = get_award_status_by_user_id(target_author_id)
-        
-        if award_info:
-            award_status = f"""Award Status Information:
-Award Name: {award_info.get('award_name', 'N/A')}
-Current Stage: {award_info.get('award_stage', 'Unknown')}
-Eligibility Status: {award_info.get('eligibility', 'No eligibility information available')}
-"""
-            return award_status
-        else:
-            return f"No award information found for the requested author. You may not have any awards or nominations in our system yet."
-            
-    except Exception as e:
-        logger.error(f"Error in award_status_lookup tool: {e}")
-        return f"I encountered an error while looking up award status: {str(e)}"
-
-# Additional utility tools
-
 @tool
 def get_user_profile_summary(
     user_id: Annotated[str, InjectedToolArg]
@@ -154,7 +112,6 @@ def get_user_profile_summary(
         
         # Get book and award information
         book_info = get_book_status_by_user_id(user_id)
-        award_info = get_award_status_by_user_id(user_id)
         
         summary_parts = ["Your Profile Summary:\n"]
         
@@ -164,12 +121,6 @@ def get_user_profile_summary(
         else:
             summary_parts.append("📚 No books found in your profile")
             
-        # Award information  
-        if award_info:
-            summary_parts.append(f"🏆 Award: '{award_info.get('award_name', 'N/A')}' - Stage: {award_info.get('award_stage', 'Unknown')}")
-        else:
-            summary_parts.append("🏆 No awards found in your profile")
-        
         return "\n".join(summary_parts)
         
     except Exception as e:
