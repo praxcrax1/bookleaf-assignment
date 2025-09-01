@@ -181,7 +181,6 @@ def search_faq_documents(
             "error": str(e)
         }
 
-def delete_faq_document(doc_id: str) -> bool:
     """
     Delete a company FAQ document from Pinecone.
     
@@ -213,7 +212,6 @@ def delete_faq_document(doc_id: str) -> bool:
         logger.error(f"Error deleting FAQ document {doc_id}: {e}")
         return False
 
-def get_total_faq_count() -> int:
     """
     Get the total count of company FAQ documents.
     
@@ -236,95 +234,3 @@ def get_total_faq_count() -> int:
     except Exception as e:
         logger.error(f"Error getting FAQ document count: {e}")
         return 0
-
-def seed_company_faq_documents():
-    """
-    Seed Pinecone with company FAQ documents for all users.
-    These FAQs are accessible to all users without user-specific filtering.
-    """
-    try:
-        logger.info("Seeding company FAQ documents...")
-        
-        # Company FAQ documents (accessible to all users)
-        company_faqs = [
-            {
-                "text": "How do I check the status of my book manuscript? You can ask about your book status and I'll provide current information including which stage it's in and any relevant notes from the editorial team. Simply ask 'What's my book status?' or 'How is my manuscript progressing?'",
-                "category": "book_status",
-                "topic": "manuscript_tracking",
-                "doc_id": "company_faq_book_status"
-            },
-            {
-                "text": "What are the eligibility requirements for literary awards? Awards typically require original work, specific genre categories, and submission deadlines. Requirements vary by award type: fiction awards require completed novels, poetry awards need published collections, and nonfiction awards require factual accuracy. I can check your current award status and eligibility.",
-                "category": "awards", 
-                "topic": "eligibility_requirements",
-                "doc_id": "company_faq_award_eligibility"
-            },
-            {
-                "text": "How long does the editing process usually take? The editing timeline varies by manuscript length and complexity. Typical editing phases include: developmental editing (2-4 weeks for structure and content), copy editing (1-2 weeks for grammar and style), and proofreading (3-5 days for final errors). Rush jobs may take less time but could compromise quality.",
-                "category": "publishing_process",
-                "topic": "editing_timeline", 
-                "doc_id": "company_faq_editing_timeline"
-            },
-            {
-                "text": "What is the typical book publishing process? The publishing process includes: 1) Manuscript submission and review, 2) Developmental editing for structure and content, 3) Copy editing for grammar and style, 4) Design and formatting, 5) Proofreading and final review, 6) Printing/digital publication, 7) Marketing and distribution. The entire process typically takes 3-6 months.",
-                "category": "publishing_process",
-                "topic": "publication_workflow",
-                "doc_id": "company_faq_publishing_process"
-            },
-            {
-                "text": "How do I submit my work for awards consideration? Award submissions typically require: 1) Completed and published work, 2) Submission form with author details, 3) Work samples or full manuscript, 4) Entry fees (if applicable), 5) Adherence to genre and word count requirements. Check specific award guidelines as requirements vary significantly between different literary awards.",
-                "category": "awards",
-                "topic": "award_submission",
-                "doc_id": "company_faq_award_submission"
-            }
-        ]
-        
-        # Add FAQ documents
-        for faq in company_faqs:
-            doc_id = faq["doc_id"]
-            
-            # Check if document already exists
-            try:
-                existing = search_faq_documents(
-                    query=faq["text"][:50],  # Search by first 50 chars
-                    top_k=1,
-                    min_similarity=0.95
-                )
-                
-                # Check if this specific doc_id exists in results
-                doc_exists = any(
-                    doc.get("doc_id") == doc_id 
-                    for doc in existing.get("documents", [])
-                )
-                
-                if not doc_exists:
-                    upsert_faq_document(
-                        text=faq["text"],
-                        doc_id=doc_id,
-                        metadata={
-                            "category": faq["category"],
-                            "topic": faq["topic"]
-                        }
-                    )
-                    logger.info(f"Added company FAQ document: {doc_id}")
-                else:
-                    logger.info(f"Company FAQ document already exists: {doc_id}")
-                    
-            except Exception as e:
-                logger.warning(f"Error checking existing document {doc_id}, creating new: {e}")
-                upsert_faq_document(
-                    text=faq["text"],
-                    doc_id=doc_id,
-                    metadata={
-                        "category": faq["category"],
-                        "topic": faq["topic"]
-                    }
-                )
-                logger.info(f"Added company FAQ document: {doc_id}")
-        
-        logger.info("Company FAQ documents seeding completed successfully")
-        return True
-        
-    except Exception as e:
-        logger.error(f"Error seeding company FAQ documents: {e}")
-        return False

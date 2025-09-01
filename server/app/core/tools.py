@@ -5,8 +5,7 @@ Provides tools for document search, book status lookup, and award status lookup.
 from typing import Annotated, Optional
 from langchain.tools import tool
 from langchain_core.tools import InjectedToolArg
-from app.pinecone_utils import get_embeddings, get_index
-from app.db_utils import get_book_status_by_user_id, get_award_status_by_user_id
+from app.db_utils import get_book_status_by_user_id
 import logging
 
 logger = logging.getLogger(__name__)

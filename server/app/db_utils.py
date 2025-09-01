@@ -148,38 +148,6 @@ def get_book_status_by_user_id(user_id: str) -> Optional[Dict[str, Any]]:
     """
     return get_book_status(user_id)
 
-# Award Management Functions
-
-def get_award_status(author_id: str) -> Optional[Dict[str, Any]]:
-    """
-    Get award status for a specific author.
-    
-    Args:
-        author_id: Author's ID
-        
-    Returns:
-        Award status document if found, None otherwise
-    """
-    try:
-        db = get_database()
-        award = db.awards.find_one({"author_id": author_id})
-        return award
-    except Exception as e:
-        logger.error(f"Error getting award status for author {author_id}: {e}")
-        return None
-
-def get_award_status_by_user_id(user_id: str) -> Optional[Dict[str, Any]]:
-    """
-    Get award status for a user (assuming user_id == author_id for simplicity).
-    
-    Args:
-        user_id: User's ObjectId as string
-        
-    Returns:
-        Award status document if found, None otherwise
-    """
-    return get_award_status(user_id)
-
 # Chat History Management
 
 def save_chat_message(user_id: str, message: str, response: str):
