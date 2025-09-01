@@ -20,7 +20,7 @@ from app.auth import (
 )
 from app.db_utils import init_database
 from app.pinecone_utils import init_pinecone
-from app.agent import create_agent
+from app.agent.agent import create_agent
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)

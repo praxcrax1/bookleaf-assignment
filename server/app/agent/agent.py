@@ -5,7 +5,7 @@ Creates intelligent agents that can reason about when to use different tools and
 from langchain.agents import AgentExecutor, Tool, create_tool_calling_agent
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
-from app.core.tools import search_faq_documents, book_status_lookup, get_user_profile_summary
+from app.agent.tools import search_faq_documents, book_status_lookup, get_user_profile_summary
 from app.config import settings
 from langchain.chains.conversation.memory import ConversationBufferMemory
 from langchain_mongodb.chat_message_histories import MongoDBChatMessageHistory
