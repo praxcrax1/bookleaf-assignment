@@ -8,12 +8,11 @@ langchain-google-genai
 langchain-openai
 langchain-pinecone
 python-jose[cryptography]
+passlib[bcrypt]
 python-multipart
 pydantic
 pydantic-settings
 python-dotenv
 openai
+pinecone
 langchain_google_genai
-# PDF processing libraries
-PyPDF2
-langchain-text-splitters

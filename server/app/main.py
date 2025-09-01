@@ -2,7 +2,7 @@
 FastAPI application for the conversational AI agent.
 Provides authentication endpoints and protected chat functionality.
 """
-from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File
+from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
@@ -19,7 +19,7 @@ from app.auth import (
     register_user, login_user
 )
 from app.db_utils import init_database, seed_mock_data
-from app.pinecone_utils import init_pinecone, process_and_store_pdf, delete_pdf_document
+from app.pinecone_utils import init_pinecone
 from app.agent import create_agent, create_simple_agent
 
 # Set up logging
@@ -47,25 +47,6 @@ class HealthResponse(BaseModel):
     message: str
     database_connected: bool
     pinecone_connected: bool
-
-class PDFUploadResponse(BaseModel):
-    """Model for PDF upload response."""
-    success: bool
-    message: str
-    filename: str
-    base_doc_id: Optional[str] = None
-    total_chunks: int = 0
-    total_characters: int = 0
-    uploaded_chunks: Optional[list] = None
-    error: Optional[str] = None
-
-class PDFDeleteResponse(BaseModel):
-    """Model for PDF deletion response."""
-    success: bool
-    message: str
-    base_doc_id: str
-    deleted_chunks: int = 0
-    error: Optional[str] = None
 
 # Startup/Shutdown Event Handler
 @asynccontextmanager
@@ -345,123 +326,6 @@ async def get_profile(current_user: dict = Depends(get_current_user)):
             detail="Failed to retrieve profile"
         )
 
-# PDF Upload Endpoints
-@app.post("/upload-pdf", response_model=PDFUploadResponse)
-async def upload_pdf(
-    file: UploadFile = File(...),
-    category: str = "uploaded_document"
-):
-    """
-    Upload and process a PDF file for storage in Pinecone.
-    
-    Args:
-        file: PDF file to upload
-        category: Category for the document (optional)
-        
-    Returns:
-        Upload processing results
-        
-    Raises:
-        HTTPException: If upload or processing fails
-    """
-    try:
-        # Validate file type
-        if not file.filename.lower().endswith('.pdf'):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Only PDF files are allowed"
-            )
-        
-        # Check file size (limit to 10MB)
-        content = await file.read()
-        if len(content) > 10 * 1024 * 1024:  # 10MB limit
-            raise HTTPException(
-                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                detail="File size must be less than 10MB"
-            )
-        
-        logger.info(f"Processing PDF upload: {file.filename}")
-        
-        # Process and store PDF
-        result = process_and_store_pdf(
-            pdf_content=content,
-            filename=file.filename,
-            category=category
-        )
-        
-        if result["success"]:
-            response = PDFUploadResponse(
-                success=True,
-                message=f"Successfully processed and uploaded '{file.filename}'",
-                filename=file.filename,
-                base_doc_id=result["base_doc_id"],
-                total_chunks=result["total_chunks"],
-                total_characters=result["total_characters"],
-                uploaded_chunks=result["uploaded_chunks"]
-            )
-            logger.info(f"PDF upload successful: {file.filename} ({result['total_chunks']} chunks)")
-            return response
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to process PDF: {result.get('error', 'Unknown error')}"
-            )
-        
-    except HTTPException:
-        raise  # Re-raise HTTP exceptions as-is
-    except Exception as e:
-        logger.error(f"PDF upload error for {file.filename}: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"PDF upload failed: {str(e)}"
-        )
-
-@app.delete("/delete-pdf/{base_doc_id}", response_model=PDFDeleteResponse)
-async def delete_pdf(
-    base_doc_id: str
-):
-    """
-    Delete a PDF document and all its chunks from Pinecone.
-    
-    Args:
-        base_doc_id: Base document ID to delete
-        
-    Returns:
-        Deletion results
-        
-    Raises:
-        HTTPException: If deletion fails
-    """
-    try:
-        logger.info(f"Deleting PDF document: {base_doc_id}")
-        
-        result = delete_pdf_document(base_doc_id)
-        
-        if result["success"]:
-            response = PDFDeleteResponse(
-                success=True,
-                message=f"Successfully deleted document {base_doc_id}",
-                base_doc_id=base_doc_id,
-                deleted_chunks=result["deleted_chunks"]
-            )
-            logger.info(f"PDF deletion successful: {base_doc_id} ({result['deleted_chunks']} chunks)")
-            return response
-        else:
-            error_msg = result.get("error") or result.get("message", "Unknown error")
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Failed to delete PDF: {error_msg}"
-            )
-        
-    except HTTPException:
-        raise  # Re-raise HTTP exceptions as-is
-    except Exception as e:
-        logger.error(f"PDF deletion error for {base_doc_id}: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"PDF deletion failed: {str(e)}"
-        )
-
 # Root endpoint
 @app.get("/")
 async def root():
@@ -475,9 +339,7 @@ async def root():
             "register": "POST /register - User registration",
             "login": "POST /login - User authentication", 
             "chat": "POST /chat - Chat with AI agent (protected)",
-            "profile": "GET /profile - User profile (protected)",
-            "upload_pdf": "POST /upload-pdf - Upload PDF document (public)",
-            "delete_pdf": "DELETE /delete-pdf/{base_doc_id} - Delete PDF document (public)"
+            "profile": "GET /profile - User profile (protected)"
         }
     }
 

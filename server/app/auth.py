@@ -7,9 +7,13 @@ from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
+from passlib.context import CryptContext
 from pydantic import BaseModel
 from app.config import settings
 from app.db_utils import get_user_by_email, create_user, get_user
+
+# Password hashing context
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # HTTP Bearer security scheme
 security = HTTPBearer()

@@ -306,7 +306,7 @@ def get_all_users():
     """Get all users (for debugging purposes)."""
     try:
         db = get_database()
-        users = list(db.users.find({}, {"password": 0}))  # Exclude password
+        users = list(db.users.find({}, {"password_hash": 0}))  # Exclude password hash
         return users
     except Exception as e:
         logger.error(f"Error getting all users: {e}")
